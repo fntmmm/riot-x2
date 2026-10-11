@@ -69,9 +69,18 @@ screen.position.set(0,1.16,-2.441);scene.add(screen);parts.push(screen);
 const glow=new THREE.PointLight(0x88ffbb,.35,2.5);glow.position.set(0,1.16,-2.2);scene.add(glow);
 const logo=new Image();logo.onload=drawScreen;logo.src=LOGO;
 const W=320,H=240;let hits=[],hoverKey='',listOff=0,linkOff=0,page=0,links=[];
+// Redraws requested by taps/audio changes are merged into one draw per rendered frame (see loop),
+// instead of repainting the whole screen canvas several times in a row on the tap itself.
+let scrDirty=false;const markScreen=()=>{scrDirty=true};
+// text measuring is slow on phones (esp. Low Power Mode): remember results
+const fitC=new Map(),twC=new Map();
+function mtw(t){const k=sx.font+'|'+t;let v=twC.get(k);if(v===undefined){if(twC.size>300)twC.clear();v=sx.measureText(t).width;twC.set(k,v)}return v}
 const fmt=s=>isFinite(s)?Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'):'0:00';
 function bev(x,y,w,h,fill,sunk){sx.fillStyle=sunk?'#808080':'#fff';sx.fillRect(x,y,w,h);sx.fillStyle=sunk?'#fff':'#404040';sx.fillRect(x+1,y+1,w-1,h-1);sx.fillStyle=fill;sx.fillRect(x+1,y+1,w-2,h-2)}
-function fit(t,w){if(sx.measureText(t).width<=w)return t;while(t.length>1&&sx.measureText(t+'\u2026').width>w)t=t.slice(0,-1);return t+'\u2026'}
+function fit(t,w){const k=sx.font+'|'+w+'|'+t;let r=fitC.get(k);if(r!==undefined)return r;
+ if(fitC.size>500)fitC.clear();
+ if(sx.measureText(t).width<=w)r=t;else{let u=t;while(u.length>1&&sx.measureText(u+'\u2026').width>w)u=u.slice(0,-1);r=u+'\u2026'}
+ fitC.set(k,r);return r}
 function btn(k,x,y,w,h,label,fn){hits.push({k,x,y,w,h,fn});const pr=pressed&&pressKey===k?1:0;bev(x,y,w,h,hoverKey===k?'#e6e6ff':'#c0c0c0',!!pr);sx.fillStyle='#000';sx.font='bold 14px monospace';sx.textAlign='center';sx.fillText(label,x+w/2+pr,y+h/2+5+pr)}
 function openLink(u){if(!/^https?:\/\//i.test(u))return;
  $('lot').textContent='Open this link:';$('lou').textContent=u;$('loa').href=u;$('lob').href=u;$('lo').style.display='block'}
@@ -79,7 +88,7 @@ function drawMusic(){
  bev(54,32,256,32,'#000',true);
  const name=err||(cur>=0?tracks[cur].name:(tracks.length?'Select a track':'No tracks loaded'));
  sx.save();sx.beginPath();sx.rect(58,34,248,17);sx.clip();sx.fillStyle='#33ff66';sx.font='bold 14px monospace';sx.textAlign='left';
- const tw=sx.measureText(name).width;let ox=58;
+ const tw=mtw(name);let ox=58;
  if(tw>248){const p=tw+40;ox=58-((performance.now()/30)%p);sx.fillText(name,ox+p,47)}
  sx.fillText(name,ox,47);sx.restore();
  const dur=audio.duration,fr=isFinite(dur)&&dur>0?audio.currentTime/dur:0;
@@ -136,7 +145,7 @@ function drawScreen(){
  if(scrCur)drawCursor(scrCur.x,scrCur.y,scrCur.h);
  sx.fillStyle='rgba(0,0,0,.06)';for(let y=0;y<H;y+=2)sx.fillRect(0,y,W,1);
  stex.needsUpdate=true}
-function setVol(v){audio.volume=Math.max(0,Math.min(1,Math.round(v*10)/10));drawScreen()}
+function setVol(v){audio.volume=Math.max(0,Math.min(1,Math.round(v*10)/10));markScreen()}
 function screenHit(h){if(!h)return null;const x=h.uv.x*W,y=(1-h.uv.y)*H;const r=hits.find(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h);return r?{r,u:(x-r.x)/r.w}:null}
 
 // ---- warm desk lamp ----
@@ -197,7 +206,7 @@ function next(){if(tracks.length)play((cur+1)%tracks.length)}
 function prev(){if(tracks.length)play((cur-1+tracks.length)%tracks.length)}
 let lastTog=0;
 function toggle(){const t=performance.now();if(t-lastTog<300)return;lastTog=t;if(cur<0){if(tracks.length)play(0);return}if(audio.paused)audio.play();else audio.pause()}
-function ui(){if(cur>=0){if(cur<listOff)listOff=cur;else if(cur>=listOff+7)listOff=cur-6}drawScreen()}
+function ui(){if(cur>=0){if(cur<listOff)listOff=cur;else if(cur>=listOff+7)listOff=cur-6}markScreen()}
 // unlock audio on the first tap/click (browsers require a gesture)
 addEventListener('touchend',()=>{if(AC)getCtx()});addEventListener('click',()=>{if(AC)getCtx()});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&actx&&actx.state!=='running')actx.resume()});
@@ -235,8 +244,8 @@ canvas.addEventListener('pointermove',e=>{mx=e.clientX/innerWidth;my=e.clientY/i
  if(e.pointerType==='touch'){if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;drag.m+=Math.abs(dx)+Math.abs(dy);if(!open&&drag.m>10){yaw=Math.max(-1.75,Math.min(1.75,yaw+dx*.006));pitch=Math.max(-.5,Math.min(.6,pitch+dy*.006))}}}
  else inside=true});
 canvas.addEventListener('pointerup',()=>{wasDrag=!!(drag&&drag.m>10);drag=null});
-canvas.addEventListener('pointerdown',()=>{if(!open||walk<.85)return;const raw=pick([screen]);if(!raw)return;const s=screenHit(raw);pressed=true;pressKey=s?s.r.k:'';drawScreen()});
-const unpress=()=>{if(pressed){pressed=false;pressKey='';drawScreen()}};addEventListener('pointerup',unpress);addEventListener('pointercancel',unpress);
+canvas.addEventListener('pointerdown',()=>{if(!open||walk<.85)return;const raw=pick([screen]);if(!raw)return;const s=screenHit(raw);pressed=true;pressKey=s?s.r.k:'';markScreen()});
+const unpress=()=>{if(pressed){pressed=false;pressKey='';markScreen()}};addEventListener('pointerup',unpress);addEventListener('pointercancel',unpress);
 canvas.addEventListener('pointercancel',()=>{drag=null});
 canvas.addEventListener('pointerleave',()=>inside=false);
 function closePC(){open=false;hoverKey='';scrCur=null;hint('',1)}
@@ -291,11 +300,11 @@ function loop(now){
     const hh=!!s;if(!scrCur||scrCur.x!==nx||scrCur.y!==ny||scrCur.h!==hh){scrCur={x:nx,y:ny,h:hh};redraw=true}}
    else if(scrCur){scrCur=null;redraw=true}
    if(k!==hoverKey){hoverKey=k;redraw=true}
-   if(redraw)drawScreen()}
-  else{if(scrCur){scrCur=null;drawScreen()}const a=pick(parts),b=pick(posters);if(a&&(!b||a.distance<b.distance))c2='pointer';else if(b&&b.object.userData.sound)c2='pointer'}
+   if(redraw)markScreen()}
+  else{if(scrCur){scrCur=null;markScreen()}const a=pick(parts),b=pick(posters);if(a&&(!b||a.distance<b.distance))c2='pointer';else if(b&&b.object.userData.sound)c2='pointer'}
   canvas.style.cursor=c2}
- if(now-lastDraw>(lite?250:100)){lastDraw=now;drawScreen()}
+ if(now-lastDraw>(lite?250:100)){lastDraw=now;markScreen()}
  lamp.intensity=1.25*(1+.015*Math.sin(now*.007));
- if(gifTick)gifTick(now);if(shadowFrames<120){shadowFrames++;renderer.shadowMap.needsUpdate=true}renderer.render(scene,cam)}
+ if(gifTick)gifTick(now);if(shadowFrames<120){shadowFrames++;renderer.shadowMap.needsUpdate=true}if(scrDirty){scrDirty=false;drawScreen()}renderer.render(scene,cam)}
 ui();requestAnimationFrame(loop);
 </script></body></html>
