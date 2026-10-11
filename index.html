@@ -167,13 +167,13 @@ let actx=null,mgain=null,vol=.7;
 // Fix: on iOS, send all sound into a MediaStream and play that stream through a real <audio> element
 // (srcObject needs no file/URL, so it also works where data:/blob: media is blocked).
 const IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-let outNode=null,msd=null,streamEl=null;
+let outNode=null,msd=null,streamEl=null,streamRest=false,restT=0;
 function setRoute(useStream){if(!actx||!mgain)return;const want=(useStream&&msd)?msd:actx.destination;if(want===outNode&&mgain._wired)return;
  try{mgain.disconnect()}catch(e){}outNode=want;mgain.connect(outNode);mgain._wired=1}
 function mediaMode(){
  try{if(navigator.audioSession&&navigator.audioSession.type!=='playback')navigator.audioSession.type='playback'}catch(e){}
  if(!IOS||!msd||!streamEl)return;
- if(streamEl.paused){try{const p=streamEl.play();if(p&&p.then)p.then(()=>setRoute(true),()=>setRoute(false))}catch(e){setRoute(false)}}}
+ if(streamEl.paused){streamRest=false;try{const p=streamEl.play();if(p&&p.then)p.then(()=>setRoute(true),()=>setRoute(false))}catch(e){setRoute(false)}}}
 function getCtx(){
  if(!actx){try{actx=new AC({latencyHint:'playback',sampleRate:48000})}catch(e){try{actx=new AC({latencyHint:'playback'})}catch(e2){actx=new AC()}}
   mgain=actx.createGain();mgain.gain.value=vol;outNode=actx.destination;mgain.connect(outNode);mgain._wired=1;
@@ -183,6 +183,11 @@ function getCtx(){
  if(actx.state!=='running')actx.resume();return actx}
 const u8=d=>{const bin=atob(d.slice(d.indexOf(',')+1)),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u};
 const decode=d=>new Promise((res,rej)=>{const c=getCtx(),ab=u8(d).buffer;const p=c.decodeAudioData(ab,res,rej);if(p&&p.catch)p.catch(rej)});
+// iOS: once music is paused, nothing is feeding the MediaStream. An idle stream can starve and
+// stutter/loop the last bit of audio until sound starts again, so park the element after the fade-out.
+// mediaMode() wakes it the next time any sound starts (music or poster sfx).
+function restStream(){clearTimeout(restT);if(!IOS||!streamEl)return;
+ restT=setTimeout(()=>{if(audio.paused&&streamEl&&!streamEl.paused){streamRest=true;try{streamEl.pause()}catch(e){}}},150)}
 const audio={
  buf:null,node:null,sg:null,t0:0,off:0,paused:true,req:0,
  get volume(){return vol},set volume(v){vol=v;if(mgain)mgain.gain.value=v},
@@ -196,7 +201,8 @@ const audio={
   n.onended=()=>{if(this.node===n){this.node=null;this.sg=null;this.paused=true;this.off=0;playing=false;next()}};
   this.node=n;this.sg=g;this.t0=t;n.start(0,this.off);this.paused=false;playing=true;ui()},
  play(){if(this.buf&&this.paused)this._start()},
- pause(){if(!this.buf||this.paused)return;this.off=this.currentTime;this._stop();this.paused=true;playing=false;ui()},
+ pause(){if(!this.buf||this.paused)return;const n=this.node,g=this.sg;this.off=this.currentTime;this._stop();this.paused=true;playing=false;ui();
+  setTimeout(()=>{try{if(n)n.disconnect();if(g)g.disconnect()}catch(e){}},150);restStream()},
  async playTrack(t){this._stop();this.paused=true;playing=false;this.buf=null;this.off=0;const my=++this.req;
   try{getCtx();if(!t.buf)t.buf=await decode(t.data)}catch(e){if(my===this.req){err='Cannot play this track';drawScreen()}return}
   if(my!==this.req)return;err='';this.buf=t.buf;this._start()}
@@ -208,7 +214,7 @@ let lastTog=0;
 function toggle(){const t=performance.now();if(t-lastTog<300)return;lastTog=t;if(cur<0){if(tracks.length)play(0);return}if(audio.paused)audio.play();else audio.pause()}
 function ui(){if(cur>=0){if(cur<listOff)listOff=cur;else if(cur>=listOff+7)listOff=cur-6}markScreen()}
 // unlock audio on the first tap/click (browsers require a gesture)
-addEventListener('touchend',()=>{if(AC)getCtx()});addEventListener('click',()=>{if(AC)getCtx()});
+addEventListener('touchend',()=>{if(AC&&!streamRest)getCtx()});addEventListener('click',()=>{if(AC&&!streamRest)getCtx()});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&actx&&actx.state!=='running')actx.resume()});
 
 
