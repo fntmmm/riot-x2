@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
 <title>The Room</title>
 <style>
 html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;font:13px ui-monospace,Menlo,Consolas,monospace;color:#9fe8b8}
@@ -12,6 +14,8 @@ button:hover{background:#9fe8b8;color:#07100c}
 #lo{display:none;position:fixed;left:50%;bottom:calc(60px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(520px,92vw);background:#07100c;border:1px solid #9fe8b8;padding:12px;z-index:6;box-sizing:border-box}
 #lo a{color:#9fe8b8;border:1px solid #9fe8b8;padding:6px 10px;text-decoration:none;display:inline-block;margin:0 4px 4px 0}
 #lou{word-break:break-all;margin:6px 0 10px;color:#e8dcc4}
+#hint,#lo{font-family:'VT323',ui-monospace,Menlo,Consolas,monospace;font-size:19px;line-height:1.3;-webkit-font-smoothing:none;font-smooth:never}
+#hint{padding:0 12px;box-sizing:border-box}
 </style></head><body>
 <canvas id="c"></canvas><div id="fx"></div>
 <div id="lo"><div id="lot"></div><div id="lou"></div><a id="loa" target="_blank" rel="noopener noreferrer">New tab</a><a id="lob" target="_top" rel="noopener noreferrer">This tab</a><button id="loc">Copy link</button> <button id="lox">Close</button></div>
@@ -279,6 +283,47 @@ let last=performance.now(),shadowFrames=0;
 // so we watch the real frame rate and switch to a lighter mode when a touch device is running slow.
 let lite=false,ema=16,rawLast=0,rawN=0,pf=0;
 function setLite(){lite=true;RH=240;resize();hint('Low power mode detected \u00b7 using lighter graphics',6000)}
+// ---- rare visitor: on ~1 in 10 loads, a pale low-poly figure creeps up from a back corner behind you ----
+// It only moves while it's off-screen, never gets closer than ~2.3 units to where you sit,
+// and quietly fades away if you stare at it. Add ?creep to the URL to force it while testing.
+const CREEP={chance:.1,speed:.025,back:.3,stare:3,hold:2.3};
+function facet(g){g=g.index?g.toNonIndexed():g;g.computeVertexNormals();const n=g.attributes.normal,c=new Float32Array(n.count*3);
+ for(let i=0;i<n.count;i++){const v=.7+.3*Math.max(0,n.getX(i)*.4+n.getY(i)*.8+n.getZ(i)*.45);c[i*3]=c[i*3+1]=c[i*3+2]=v}
+ g.setAttribute('color',new THREE.BufferAttribute(c,3));return g}
+function mkCreep(){
+ const side=Math.random()<.5?-1:1,mat=new THREE.MeshBasicMaterial({vertexColors:true,fog:false,transparent:true}),g=new THREE.Group();
+ const part=(geo,x,y,z,rz,k,kh)=>{const m=new THREE.Mesh(facet(geo),mat);m.position.set(x,y,z);m.rotation.z=rz||0;m.scale.set(k||1,kh||1,k||1);g.add(m);return m};
+ const head=part(new THREE.IcosahedronGeometry(.13,0),0,1.7,0,.12,.9,1.2);
+ part(new THREE.CylinderGeometry(.045,.05,.14,6),0,1.57,0);
+ part(new THREE.CylinderGeometry(.19,.12,.62,6),0,1.22,0);
+ part(new THREE.CylinderGeometry(.12,.1,.2,6),0,.87,0);
+ [-1,1].forEach(k=>{part(new THREE.CylinderGeometry(.06,.04,.85,5),k*.07,.425,0);part(new THREE.CylinderGeometry(.045,.03,.8,5),k*.25,1.12,0,k*.06)});
+ const x0=side*2.85,z0=2.5,x1=side*CREEP.hold*Math.sin(1.92),z1=home.z-CREEP.hold*Math.cos(1.92);
+ g.position.set(x0,0,z0);scene.add(g);
+ return{g,mat,head,x0,z0,x1,z1,len:Math.hypot(x1-x0,z1-z0),u:0,watch:0,leaving:false,done:false,
+  fr:new THREE.Frustum(),pm:new THREE.Matrix4(),sph:new THREE.Sphere(new THREE.Vector3(),.8)}}
+const creep=(Math.random()<CREEP.chance||/[?&]creep/.test(location.search))?mkCreep():null;
+function creepTick(now,dt){
+ const c=creep;if(c.done)return;
+ const p=c.g.position,cp=cam.position;
+ cam.updateMatrixWorld();c.pm.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);c.fr.setFromProjectionMatrix(c.pm);
+ c.sph.center.set(p.x,.95,p.z);
+ const seen=c.fr.intersectsSphere(c.sph),dx=p.x-cp.x,dy=.95-cp.y,dz=p.z-cp.z,d=Math.hypot(dx,dy,dz),cx=Math.cos(pitch);
+ const dot=(-dx*cx*Math.sin(yaw)+dy*Math.sin(pitch)-dz*cx*Math.cos(yaw))/d;
+ if(!c.leaving){
+  if(seen){if(dot>.88){c.watch+=dt;if(c.watch>CREEP.stare)c.leaving=true}}
+  else{c.watch=Math.max(0,c.watch-dt*.5);c.u=Math.min(1,c.u+CREEP.speed*dt/c.len);p.x=c.x0+(c.x1-c.x0)*c.u;p.z=c.z0+(c.z1-c.z0)*c.u}
+ }else if(c.u>0){
+  // caught looking: walk backwards toward its corner (still facing you), getting dimmer with distance
+  c.u=Math.max(0,c.u-CREEP.back*dt/c.len);p.x=c.x0+(c.x1-c.x0)*c.u;p.z=c.z0+(c.z1-c.z0)*c.u
+ }else{
+  c.mat.opacity=Math.max(0,c.mat.opacity-dt/1.5);
+  if(c.mat.opacity<=0){scene.remove(c.g);c.done=true;return}}
+ c.g.rotation.y=Math.atan2(cp.x-p.x,cp.z-p.z);
+ c.g.rotation.z=Math.sin(now*.0011)*.02;
+ c.head.rotation.z=.12+Math.sin(now*.0007)*.04;
+ c.mat.color.setScalar(Math.max(.12,Math.min(1,(5-d)/2.4)))}
+
 function loop(now){
  requestAnimationFrame(loop);
  if(coarse&&rawLast){const rd=now-rawLast;if(rd<100){ema=ema*.93+rd*.07;rawN++;if(!lite&&rawN>60&&ema>26)setLite()}}rawLast=now;
@@ -288,6 +333,8 @@ function loop(now){
  const ez=walk*walk*(3-2*walk);zoom.set(0,1.12,-2.441+zoomD);cam.position.lerpVectors(home,zoom,ez);
  const fv=65-10*ez;if(cam.fov!==fv){cam.fov=fv;cam.updateProjectionMatrix()}
  if(walk>0&&walk<1){cam.position.y+=Math.sin(now*.011)*.014;cam.position.x+=Math.cos(now*.0055)*.007}
+  // breathing: ~4.5s cycle, uses the loop's own frame cap so low power mode is untouched; fades out while zoomed on the screen
+  const bk=1-.85*ez,br=(Math.sin(now*.0014)+.2*Math.sin(now*.0028+1))*bk;cam.position.y+=br*.012;
  if(open){yaw*=.9;pitch+=(-.13-pitch)*.1}
  else{
   const E=.14;let dx=0,dy=0;
@@ -298,7 +345,7 @@ function loop(now){
   if(keys.KeyW||keys.ArrowUp)dy=1;if(keys.KeyS||keys.ArrowDown)dy=-1;
   yaw=Math.max(-1.75,Math.min(1.75,yaw+dx*dt*1.5));
   pitch=Math.max(-.5,Math.min(.6,pitch+dy*dt*.9))}
- cam.rotation.set(pitch,yaw,0);
+ cam.rotation.set(pitch+br*.006,yaw,0);
  let c2='default';
  if(!(lite&&(++pf%4))){
   if(open){const raw=pick([screen]),s=screenHit(raw),k=s?s.r.k:'';let redraw=false;
@@ -311,6 +358,6 @@ function loop(now){
   canvas.style.cursor=c2}
  if(now-lastDraw>(lite?250:100)){lastDraw=now;markScreen()}
  lamp.intensity=1.25*(1+.015*Math.sin(now*.007));
- if(gifTick)gifTick(now);if(shadowFrames<120){shadowFrames++;renderer.shadowMap.needsUpdate=true}if(scrDirty){scrDirty=false;drawScreen()}renderer.render(scene,cam)}
+ if(gifTick)gifTick(now);if(shadowFrames<120){shadowFrames++;renderer.shadowMap.needsUpdate=true}if(scrDirty){scrDirty=false;drawScreen()}if(creep)creepTick(now,dt);renderer.render(scene,cam)}
 ui();requestAnimationFrame(loop);
 </script></body></html>
