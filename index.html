@@ -137,13 +137,21 @@ let tracks=[],cur=-1,playing=false,err='';
 const AC=window.AudioContext||window.webkitAudioContext;
 let actx=null,mgain=null,vol=.7;
 // iOS mutes Web Audio when the silent switch is on, unless the page counts as "media playback".
-// 1) navigator.audioSession (iOS 16.4+)  2) a looping silent <audio> element (older iOS)
-const SILENT='data:audio/wav;base64,UklGRmQGAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YUAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';let silentEl=null;
+// Fix: on iOS, send all sound into a MediaStream and play that stream through a real <audio> element
+// (srcObject needs no file/URL, so it also works where data:/blob: media is blocked).
+const IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+let outNode=null,msd=null,streamEl=null;
+function setRoute(useStream){if(!actx||!mgain)return;try{mgain.disconnect()}catch(e){}
+ outNode=(useStream&&msd)?msd:actx.destination;mgain.connect(outNode)}
 function mediaMode(){
  try{if(navigator.audioSession&&navigator.audioSession.type!=='playback')navigator.audioSession.type='playback'}catch(e){}
- try{if(!silentEl){silentEl=new Audio();silentEl.src=SILENT;silentEl.loop=true;silentEl.setAttribute('playsinline','');silentEl.setAttribute('webkit-playsinline','')}
-  if(silentEl.paused){const p=silentEl.play();if(p&&p.catch)p.catch(()=>{})}}catch(e){}}
-function getCtx(){mediaMode();if(!actx){actx=new AC();mgain=actx.createGain();mgain.gain.value=vol;mgain.connect(actx.destination)}
+ if(!IOS||!msd||!streamEl)return;
+ if(streamEl.paused){try{const p=streamEl.play();if(p&&p.then)p.then(()=>setRoute(true),()=>setRoute(false))}catch(e){setRoute(false)}}}
+function getCtx(){
+ if(!actx){actx=new AC();mgain=actx.createGain();mgain.gain.value=vol;outNode=actx.destination;mgain.connect(outNode);
+  if(IOS&&actx.createMediaStreamDestination){try{msd=actx.createMediaStreamDestination();streamEl=new Audio();streamEl.srcObject=msd.stream;
+   streamEl.setAttribute('playsinline','');streamEl.setAttribute('webkit-playsinline','')}catch(e){msd=null;streamEl=null}}}
+ mediaMode();
  if(actx.state!=='running')actx.resume();return actx}
 const u8=d=>{const bin=atob(d.slice(d.indexOf(',')+1)),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u};
 const decode=d=>new Promise((res,rej)=>{const c=getCtx(),ab=u8(d).buffer;const p=c.decodeAudioData(ab,res,rej);if(p&&p.catch)p.catch(rej)});
@@ -169,8 +177,7 @@ function prev(){if(tracks.length)play((cur-1+tracks.length)%tracks.length)}
 function toggle(){if(cur<0){if(tracks.length)play(0);return}if(audio.paused)audio.play();else audio.pause()}
 function ui(){if(cur>=0){if(cur<listOff)listOff=cur;else if(cur>=listOff+7)listOff=cur-6}drawScreen()}
 // unlock audio on the first tap/click (browsers require a gesture)
-addEventListener('pointerdown',()=>{if(AC)getCtx()},{once:true});
-addEventListener('touchend',()=>{if(AC)getCtx()},{once:true});
+addEventListener('touchend',()=>{if(AC)getCtx()});addEventListener('click',()=>{if(AC)getCtx()});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&actx&&actx.state!=='running')actx.resume()});
 
 
@@ -213,7 +220,7 @@ const sfxCache={};
 async function playSfx(u){try{
   if(!/^data:/i.test(u)){new Audio(u).play().catch(()=>{});return}
   const c=getCtx();let b=sfxCache[u];if(!b)b=sfxCache[u]=await decode(u);
-  const n=c.createBufferSource();n.buffer=b;n.connect(c.destination);n.start()}catch(e){console.warn('Sound failed',e)}}
+  const n=c.createBufferSource();n.buffer=b;n.connect(outNode);n.start()}catch(e){console.warn('Sound failed',e)}}
 canvas.addEventListener('click',()=>{
  if(wasDrag){wasDrag=false;return}
  if(open){if(walk<.85)return;const s=screenHit(pick([screen]));if(s)s.r.fn(s.u);else closePC();return}
