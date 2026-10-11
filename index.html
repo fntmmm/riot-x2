@@ -148,7 +148,8 @@ function mediaMode(){
  if(!IOS||!msd||!streamEl)return;
  if(streamEl.paused){try{const p=streamEl.play();if(p&&p.then)p.then(()=>setRoute(true),()=>setRoute(false))}catch(e){setRoute(false)}}}
 function getCtx(){
- if(!actx){actx=new AC();mgain=actx.createGain();mgain.gain.value=vol;outNode=actx.destination;mgain.connect(outNode);mgain._wired=1;
+ if(!actx){try{actx=new AC({latencyHint:'playback',sampleRate:48000})}catch(e){try{actx=new AC({latencyHint:'playback'})}catch(e2){actx=new AC()}}
+  mgain=actx.createGain();mgain.gain.value=vol;outNode=actx.destination;mgain.connect(outNode);mgain._wired=1;
   if(IOS&&actx.createMediaStreamDestination){try{msd=actx.createMediaStreamDestination();streamEl=new Audio();streamEl.srcObject=msd.stream;
    streamEl.setAttribute('playsinline','');streamEl.setAttribute('webkit-playsinline','')}catch(e){msd=null;streamEl=null}}}
  mediaMode();
@@ -241,6 +242,7 @@ cam.position.copy(home);
 let last=performance.now(),shadowFrames=0;
 function loop(now){
  requestAnimationFrame(loop);
+ if(coarse&&now-last<30)return;
  const dt=Math.min((now-last)/1000,.05);last=now;
  walk=Math.max(0,Math.min(1,walk+(open?1:-1)*dt/1.7));
  const ez=walk*walk*(3-2*walk);zoom.set(0,1.12,-2.441+zoomD);cam.position.lerpVectors(home,zoom,ez);
