@@ -28,7 +28,7 @@ const LOGO='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAA
 const $=id=>document.getElementById(id);
 const canvas=$('c');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:false});
-renderer.shadowMap.enabled=true;renderer.setClearColor(0);renderer.setPixelRatio(1);
+renderer.shadowMap.enabled=true;renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;renderer.setClearColor(0);renderer.setPixelRatio(1);
 const scene=new THREE.Scene();scene.fog=new THREE.Fog(0x000000,3.5,8);
 const cam=new THREE.PerspectiveCamera(65,1,.05,30);cam.rotation.order='YXZ';
 const RH=360; // internal render height: low-res, upscaled with hard pixels
@@ -141,14 +141,14 @@ let actx=null,mgain=null,vol=.7;
 // (srcObject needs no file/URL, so it also works where data:/blob: media is blocked).
 const IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 let outNode=null,msd=null,streamEl=null;
-function setRoute(useStream){if(!actx||!mgain)return;try{mgain.disconnect()}catch(e){}
- outNode=(useStream&&msd)?msd:actx.destination;mgain.connect(outNode)}
+function setRoute(useStream){if(!actx||!mgain)return;const want=(useStream&&msd)?msd:actx.destination;if(want===outNode&&mgain._wired)return;
+ try{mgain.disconnect()}catch(e){}outNode=want;mgain.connect(outNode);mgain._wired=1}
 function mediaMode(){
  try{if(navigator.audioSession&&navigator.audioSession.type!=='playback')navigator.audioSession.type='playback'}catch(e){}
  if(!IOS||!msd||!streamEl)return;
  if(streamEl.paused){try{const p=streamEl.play();if(p&&p.then)p.then(()=>setRoute(true),()=>setRoute(false))}catch(e){setRoute(false)}}}
 function getCtx(){
- if(!actx){actx=new AC();mgain=actx.createGain();mgain.gain.value=vol;outNode=actx.destination;mgain.connect(outNode);
+ if(!actx){actx=new AC();mgain=actx.createGain();mgain.gain.value=vol;outNode=actx.destination;mgain.connect(outNode);mgain._wired=1;
   if(IOS&&actx.createMediaStreamDestination){try{msd=actx.createMediaStreamDestination();streamEl=new Audio();streamEl.srcObject=msd.stream;
    streamEl.setAttribute('playsinline','');streamEl.setAttribute('webkit-playsinline','')}catch(e){msd=null;streamEl=null}}}
  mediaMode();
@@ -156,15 +156,17 @@ function getCtx(){
 const u8=d=>{const bin=atob(d.slice(d.indexOf(',')+1)),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u};
 const decode=d=>new Promise((res,rej)=>{const c=getCtx(),ab=u8(d).buffer;const p=c.decodeAudioData(ab,res,rej);if(p&&p.catch)p.catch(rej)});
 const audio={
- buf:null,node:null,t0:0,off:0,paused:true,req:0,
+ buf:null,node:null,sg:null,t0:0,off:0,paused:true,req:0,
  get volume(){return vol},set volume(v){vol=v;if(mgain)mgain.gain.value=v},
  get duration(){return this.buf?this.buf.duration:NaN},
  get currentTime(){if(!this.buf)return 0;return this.paused?this.off:Math.min(this.buf.duration,this.off+actx.currentTime-this.t0)},
  set currentTime(s){if(!this.buf)return;const was=!this.paused;this._stop();this.off=Math.max(0,Math.min(this.buf.duration-.05,s));if(was)this._start()},
- _stop(){if(this.node){this.node.onended=null;try{this.node.stop()}catch(e){}try{this.node.disconnect()}catch(e){}this.node=null}},
- _start(){const c=getCtx(),n=c.createBufferSource();n.buffer=this.buf;n.connect(mgain);
-  n.onended=()=>{if(this.node===n){this.node=null;this.paused=true;this.off=0;playing=false;next()}};
-  this.node=n;this.t0=c.currentTime;n.start(0,this.off);this.paused=false;playing=true;ui()},
+ _stop(){const n=this.node,g=this.sg;this.node=null;this.sg=null;if(!n)return;n.onended=null;
+  try{const t=actx.currentTime;g.gain.cancelScheduledValues(t);g.gain.setValueAtTime(g.gain.value,t);g.gain.linearRampToValueAtTime(0,t+.04);n.stop(t+.05)}catch(e){try{n.stop()}catch(e2){}}},
+ _start(){const c=getCtx(),n=c.createBufferSource(),g=c.createGain();n.buffer=this.buf;n.connect(g);g.connect(mgain);
+  const t=c.currentTime;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(1,t+.03);
+  n.onended=()=>{if(this.node===n){this.node=null;this.sg=null;this.paused=true;this.off=0;playing=false;next()}};
+  this.node=n;this.sg=g;this.t0=t;n.start(0,this.off);this.paused=false;playing=true;ui()},
  play(){if(this.buf&&this.paused)this._start()},
  pause(){if(!this.buf||this.paused)return;this.off=this.currentTime;this._stop();this.paused=true;playing=false;ui()},
  async playTrack(t){this._stop();this.paused=true;playing=false;this.buf=null;this.off=0;const my=++this.req;
@@ -174,7 +176,8 @@ const audio={
 function play(i){cur=i;err='';audio.playTrack(tracks[i]);ui()}
 function next(){if(tracks.length)play((cur+1)%tracks.length)}
 function prev(){if(tracks.length)play((cur-1+tracks.length)%tracks.length)}
-function toggle(){if(cur<0){if(tracks.length)play(0);return}if(audio.paused)audio.play();else audio.pause()}
+let lastTog=0;
+function toggle(){const t=performance.now();if(t-lastTog<300)return;lastTog=t;if(cur<0){if(tracks.length)play(0);return}if(audio.paused)audio.play();else audio.pause()}
 function ui(){if(cur>=0){if(cur<listOff)listOff=cur;else if(cur>=listOff+7)listOff=cur-6}drawScreen()}
 // unlock audio on the first tap/click (browsers require a gesture)
 addEventListener('touchend',()=>{if(AC)getCtx()});addEventListener('click',()=>{if(AC)getCtx()});
@@ -235,7 +238,7 @@ $('lox').onclick=()=>$('lo').style.display='none';
 
 const home=new THREE.Vector3(0,1.3,-.6),zoom=new THREE.Vector3(0,1.12,-1.78);
 cam.position.copy(home);
-let last=performance.now();
+let last=performance.now(),shadowFrames=0;
 function loop(now){
  requestAnimationFrame(loop);
  const dt=Math.min((now-last)/1000,.05);last=now;
@@ -260,6 +263,6 @@ function loop(now){
  canvas.style.cursor=c2;
  if(now-lastDraw>100){lastDraw=now;drawScreen()}
  lamp.intensity=1.25*(1+.015*Math.sin(now*.007));
- if(gifTick)gifTick(now);renderer.render(scene,cam)}
+ if(gifTick)gifTick(now);if(shadowFrames<120){shadowFrames++;renderer.shadowMap.needsUpdate=true}renderer.render(scene,cam)}
 ui();requestAnimationFrame(loop);
 </script></body></html>
