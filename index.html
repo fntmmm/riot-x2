@@ -329,6 +329,7 @@ stick.addEventListener("pointerdown", ev => {
 });
 stick.addEventListener("pointermove", ev => { if (ev.pointerId === joyId) stickSet(ev); });
 ["pointerup", "pointercancel", "lostpointercapture"].forEach(n => stick.addEventListener(n, ev => { if (ev.pointerId === joyId) stickReset(); }));
+["pointerup", "pointercancel"].forEach(n => addEventListener(n, ev => { if (ev.pointerId === joyId) stickReset(); }, true));
 document.getElementById("pad").addEventListener("contextmenu", ev => ev.preventDefault());
 /* what the room page talks to */
 const API = { cv, uc, lockEl: null, setActive, frame, down: pDown, move: pMove, up: pUp, hover };
@@ -1270,7 +1271,7 @@ function loop(now){
    if(open){const raw=pick([screen]),lk=pLocked();
     if(raw&&!coarse&&!lk){c2='none';scrCur={x:Math.round(raw.uv.x*W),y:Math.round((1-raw.uv.y)*H),h:false}}
     else{if(lk)c2='none';scrCur=null}
-    GAUNTLET.hover(raw&&walk>=.85?raw.uv.x:null,raw?1-raw.uv.y:0)}
+    GAUNTLET.hover(raw&&walk>=.85&&!coarse?raw.uv.x:null,raw?1-raw.uv.y:0)}
   else{if(scrCur){scrCur=null;markScreen()}const a=pick(parts),b=pick(posters);if(a&&(!b||a.distance<b.distance))c2='pointer';else if(b&&b.object.userData.sound)c2='pointer'}
   canvas.style.cursor=c2}
   const gOn=open&&walk>=.85;if(gOn!==gWas){gWas=gOn;GAUNTLET.setActive(gOn);document.body.classList.toggle('pc',gOn)}
