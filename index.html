@@ -814,7 +814,7 @@ const GR = document.createElement("canvas"); GR.width = W * 2; GR.height = H * 2
 /* ---------- HUD: rustic overlay, no status bar ---------- */
 const FN24 = '26px "Jacquard 24", serif', FN36 = '40px "Jacquard 24", serif';
 const FN12 = '15px "Pixelify Sans", monospace', FN10 = '13px "Pixelify Sans", monospace', FNT = '16px "IM Fell English", Georgia, serif';
-const PARCH = "#d8c79a", GOLD = "#d6a93a", IRON = "#6b5a42", isTouch = matchMedia("(hover: none)").matches;
+const PARCH = "#d8c79a", GOLD = "#d6a93a", IRON = "#6b5a42", mqTouch = matchMedia("(hover: none)");
 const VIG = document.createElement("canvas"); VIG.width = W; VIG.height = H;
 {
   const g = VIG.getContext("2d"), r = g.createRadialGradient(W / 2, H / 2, H * .3, W / 2, H / 2, W * .68);
@@ -918,7 +918,7 @@ function ui() {
     if (m) txt(m.s, W / 2, 70, m.c, "center", FN24);
     if (banner > 0) {
       txt("Round " + (ri + 1), W / 2, 84, GOLD, "center", FN24); txt(FOES[ri].place, W / 2, 112, PARCH, "center", FN12);
-      if (!isTouch && !locked()) txt("Look with the mouse. Click to capture it.", W / 2, 140, "#fff2d0", "center", FN10);
+      if (!mqTouch.matches && !locked()) txt("Look with the mouse. Click to capture it.", W / 2, 140, "#fff2d0", "center", FN10);
     }
     if (S === "won") txt("Victory", W / 2, 84, GOLD, "center", FN24);
   }
@@ -929,9 +929,9 @@ function ui() {
     const sp = 2 + Math.abs(Math.sin(t / 20)) * 6; ctx.fillStyle = "#fff"; ctx.fillRect(318 - sp, 30, sp * 2, 1.5); ctx.fillRect(318, 30 - sp, 1.5, sp * 2);
     txt("Five halls. One crown.", W / 2, 126, PARCH, "center", FN12);
     plate(50, 148, 284, 42, .5);
-    const how = isTouch ? ["Arrows to walk  -  stick to look", "Sword to strike  -  shield to parry"] : ["WASD to walk  -  mouse to look", "Click to strike  -  F or Shift to parry"];
+    const how = mqTouch.matches ? ["Arrows to walk  -  stick to look", "Sword to strike  -  shield to parry"] : ["WASD to walk  -  mouse to look", "Click to strike  -  F or Shift to parry"];
     txt(how[0], W / 2, 153, "#f6edd6", "center"); txt(how[1], W / 2, 170, "#f6edd6", "center");
-    if (t % 60 < 40) txt(isTouch ? "Tap to begin" : "Click or press Space to begin", W / 2, 199, "#fff2d0", "center", FN12);
+    if (t % 60 < 40) txt(mqTouch.matches ? "Tap to begin" : "Click or press Space to begin", W / 2, 199, "#fff2d0", "center", FN12);
     txt("designed by NoBass.", W / 2, 221, "#c9bd9f", "center");
   } else if (S === "king") {
     ctx.fillStyle = "rgba(0,0,0,.4)"; ctx.fillRect(0, 0, W, H);
@@ -947,7 +947,7 @@ function ui() {
     ctx.fillStyle = "rgba(100,0,0," + (S === "over" ? .72 : Math.min(.72, (110 - wt) / 110)) + ")"; ctx.fillRect(0, 0, W, H);
     if (S === "over") {
       plate(34, 66, 316, 110, .5); txt("You have fallen", W / 2, 80, "#ff6a4a", "center", FN36); txt("The gauntlet begins again at the gate.", W / 2, 124, PARCH, "center", FN12);
-      if (t % 60 < 40) txt(isTouch ? "Tap to try again" : "Click or press Space to try again", W / 2, 164, "#e8dcc4", "center");
+      if (t % 60 < 40) txt(mqTouch.matches ? "Tap to try again" : "Click or press Space to try again", W / 2, 164, "#e8dcc4", "center");
     }
   }
 }
@@ -1201,7 +1201,7 @@ canvas.addEventListener('click',()=>{
   if(open){if(walk<.85)return;if(!pLocked()&&!pick([screen]))closePC();return}
  const a=pick(parts),b=pick(posters);
  if(b&&(!a||b.distance<a.distance)){if(b.object.userData.sound)playSfx(b.object.userData.sound);return}
-  if(a){open=true;hint(coarse?'Arrows to walk \u00b7 stick to look \u00b7 sword to strike \u00b7 shield to parry \u00b7 tap away to leave':'WASD to walk \u00b7 click to strike \u00b7 F or Shift to parry \u00b7 Esc to leave',7000)}});
+  if(a){open=true;hint((coarse||matchMedia('(hover:none)').matches)?'Arrows to walk \u00b7 stick to look \u00b7 sword to strike \u00b7 shield to parry \u00b7 tap away to leave':'WASD to walk \u00b7 click to strike \u00b7 F or Shift to parry \u00b7 Esc to leave',7000)}});
 addEventListener('keydown',e=>{keys[e.code]=1;if(e.code==='Escape'&&open)closePC()});
 addEventListener('keyup',e=>keys[e.code]=0);
 
