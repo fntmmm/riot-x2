@@ -929,7 +929,7 @@ function ui() {
     const sp = 2 + Math.abs(Math.sin(t / 20)) * 6; ctx.fillStyle = "#fff"; ctx.fillRect(318 - sp, 30, sp * 2, 1.5); ctx.fillRect(318, 30 - sp, 1.5, sp * 2);
     txt("Five halls. One crown.", W / 2, 126, PARCH, "center", FN12);
     plate(50, 148, 284, 42, .5);
-    const how = isTouch ? ["Look with a swipe  -  tap to strike", "Buttons to walk and parry"] : ["WASD walk  -  look with mouse or tap", "Click strike  -  right-click or Shift parry"];
+    const how = isTouch ? ["Arrows to walk  -  stick to look", "Sword to strike  -  shield to parry"] : ["WASD to walk  -  mouse to look", "Click to strike  -  F or Shift to parry"];
     txt(how[0], W / 2, 153, "#f6edd6", "center"); txt(how[1], W / 2, 170, "#f6edd6", "center");
     if (t % 60 < 40) txt(isTouch ? "Tap to begin" : "Click or press Space to begin", W / 2, 199, "#fff2d0", "center", FN12);
     txt("designed by NoBass.", W / 2, 221, "#c9bd9f", "center");
@@ -1201,7 +1201,7 @@ canvas.addEventListener('click',()=>{
   if(open){if(walk<.85)return;if(!pLocked()&&!pick([screen]))closePC();return}
  const a=pick(parts),b=pick(posters);
  if(b&&(!a||b.distance<a.distance)){if(b.object.userData.sound)playSfx(b.object.userData.sound);return}
-  if(a){open=true;hint(coarse?'Swipe to look \u00b7 buttons to walk, strike and parry \u00b7 tap away to leave':'WASD to walk \u00b7 click to strike \u00b7 right-click or Shift to parry \u00b7 Esc to leave',7000)}});
+  if(a){open=true;hint(coarse?'Arrows to walk \u00b7 stick to look \u00b7 sword to strike \u00b7 shield to parry \u00b7 tap away to leave':'WASD to walk \u00b7 click to strike \u00b7 F or Shift to parry \u00b7 Esc to leave',7000)}});
 addEventListener('keydown',e=>{keys[e.code]=1;if(e.code==='Escape'&&open)closePC()});
 addEventListener('keyup',e=>keys[e.code]=0);
 
