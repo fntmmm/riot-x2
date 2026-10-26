@@ -14,37 +14,45 @@ button:hover{background:#9fe8b8;color:#07100c}
 #hint{position:fixed;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom,0px));text-align:center;pointer-events:none;text-shadow:0 0 4px #000;color:#e8dcc4;transition:opacity 1s}
 #hint{font-family:'VT323',ui-monospace,Menlo,Consolas,monospace;font-size:19px;line-height:1.3;-webkit-font-smoothing:none;font-smooth:never}
 #hint{padding:0 12px;box-sizing:border-box}
-#pad{display:none;position:fixed;left:0;right:0;bottom:0;height:0;pointer-events:none;z-index:5}
-#dpad,#rpad{position:absolute;bottom:calc(10px + env(safe-area-inset-bottom,0px));pointer-events:none}
-#dpad{left:calc(12px + env(safe-area-inset-left,0px));display:grid;grid-template-columns:repeat(3,var(--s));grid-template-rows:repeat(3,var(--s));gap:4px}
+#pad{display:none;position:fixed;left:0;right:0;bottom:0;height:0;pointer-events:none;z-index:5;--px:3px}
+#dpad,#rpad{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));pointer-events:none}
+#dpad{left:calc(16px + env(safe-area-inset-left,0px));display:grid;grid-template-columns:repeat(3,var(--s));grid-template-rows:repeat(3,var(--s));gap:8px}
 #dpad .u{grid-column:2;grid-row:1}#dpad .l{grid-column:1;grid-row:2}#dpad .r{grid-column:3;grid-row:2}#dpad .d{grid-column:2;grid-row:3}
-#rpad{right:calc(12px + env(safe-area-inset-right,0px));display:flex;flex-direction:column;align-items:center;gap:8px;width:var(--d)}
-#stick{position:relative;width:var(--d);height:var(--d);border-radius:50%;box-sizing:border-box;background:rgba(42,32,24,.6);border:3px solid #6b5636;touch-action:none;pointer-events:auto;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
-#knob{position:absolute;left:50%;top:50%;width:46%;height:46%;border-radius:50%;box-sizing:border-box;background:rgba(107,86,54,.95);border:3px solid rgba(241,230,204,.65);transform:translate(-50%,-50%);pointer-events:none}
-.acts{display:flex;gap:8px;width:var(--d)}
-#pad button{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font:600 15px "Pixelify Sans",monospace;background:rgba(42,32,24,.85);color:#f1e6cc;border:3px solid #6b5636;border-radius:6px;padding:0;box-sizing:border-box;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#rpad{right:calc(16px + env(safe-area-inset-right,0px));display:flex;flex-direction:column;align-items:center;gap:12px;width:var(--d)}
+#stick{position:relative;width:var(--d);height:var(--d);touch-action:none;pointer-events:auto;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#pad #stick svg{position:absolute;left:0;top:0;width:100%;height:100%;display:block;pointer-events:none}
+#knob{position:absolute;left:50%;top:50%;width:calc(var(--d)*5/12);height:calc(var(--d)*5/12);transform:translate(-50%,-50%);pointer-events:none}
+#pad #knob svg{position:static}
+.acts{display:flex;gap:10px;width:var(--d)}
+#pad button{--edge:#6b5a42;display:flex;align-items:center;justify-content:center;width:100%;height:100%;margin:0;padding:0;border:0;border-radius:0;box-sizing:border-box;color:#e8dcc4;background-color:#14100c;
+  background-image:linear-gradient(#8a7656,#8a7656),linear-gradient(#8a7656,#8a7656),linear-gradient(#8a7656,#8a7656),linear-gradient(#8a7656,#8a7656);background-repeat:no-repeat;background-size:3px 3px;
+  background-position:6px 6px,calc(100% - 9px) 6px,6px calc(100% - 9px),calc(100% - 9px) calc(100% - 9px);
+  box-shadow:0 calc(var(--px)*-1) 0 0 var(--edge),0 var(--px) 0 0 var(--edge),calc(var(--px)*-1) 0 0 0 var(--edge),var(--px) 0 0 0 var(--edge),inset 0 var(--px) 0 0 #000,inset 0 calc(var(--px)*-1) 0 0 #000;
+  pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 #pad .acts button{flex:1;width:auto;height:calc(var(--s)*1.15)}
-#pad button:active{background:#6b5636;color:#f1e6cc}
-#pad svg{width:62%;height:62%;fill:currentColor;display:block;pointer-events:none}
+#pad button:active{--edge:#d6a93a;color:#fff2d0;background-color:#2a2018}
+#pad button:active svg{filter:brightness(1.25)}
+#pad svg{width:var(--ic);height:var(--ic);fill:currentColor;display:block;pointer-events:none}
 #dpad .r svg{transform:rotate(90deg)}#dpad .d svg{transform:rotate(180deg)}#dpad .l svg{transform:rotate(-90deg)}
-:root{--s:clamp(42px,min(14vh,15vw),58px);--d:calc(var(--s)*2.4)}
-@media (hover:none){body.pc #pad{display:block}body.pc #hint{bottom:calc(14px + env(safe-area-inset-bottom,0px));padding:0 calc(var(--s)*3 + 28px)}}
-@media (hover:none) and (orientation:portrait){body.pc #hint{bottom:calc(var(--s)*3.6 + 26px + env(safe-area-inset-bottom,0px));padding:0 12px}}
+:root{--s:clamp(42px,min(14vh,15vw),58px);--d:calc(var(--s)*2.4);--ic:32px}
+@supports (width:round(down,10px,1px)){:root{--s:round(down,clamp(42px,min(14vh,15vw),58px),6px);--d:round(down,calc(var(--s)*2.4),24px);--ic:round(down,calc(var(--s)*.9),16px)}}
+@media (hover:none){body.pc #pad{display:block}body.pc #hint{bottom:calc(14px + env(safe-area-inset-bottom,0px));padding:0 calc(var(--s)*3 + 44px)}}
+@media (hover:none) and (orientation:portrait){body.pc #hint{bottom:calc(var(--s)*3.6 + 40px + env(safe-area-inset-bottom,0px));padding:0 12px}}
 </style></head><body>
 <canvas id="c"></canvas><div id="fx"></div>
 <div id="hint"></div>
 <div id="pad">
   <div id="dpad">
-    <button data-k="w" class="u" aria-label="Walk forward"><svg viewBox="0 0 24 24"><path d="M12 5 L20 18 H4 Z"/></svg></button>
-    <button data-k="a" class="l" aria-label="Step left"><svg viewBox="0 0 24 24"><path d="M12 5 L20 18 H4 Z"/></svg></button>
-    <button data-k="d" class="r" aria-label="Step right"><svg viewBox="0 0 24 24"><path d="M12 5 L20 18 H4 Z"/></svg></button>
-    <button data-k="s" class="d" aria-label="Walk back"><svg viewBox="0 0 24 24"><path d="M12 5 L20 18 H4 Z"/></svg></button>
+    <button data-k="w" class="u" aria-label="Walk forward"><svg viewBox="0 0 8 8" shape-rendering="crispEdges"><path d="M3 0h2v1h-2zM2 1h4v1h-4zM1 2h6v1h-6zM0 3h8v1h-8zM3 4h2v1h-2zM3 5h2v1h-2zM3 6h2v1h-2zM3 7h2v1h-2z"/></svg></button>
+    <button data-k="a" class="l" aria-label="Step left"><svg viewBox="0 0 8 8" shape-rendering="crispEdges"><path d="M3 0h2v1h-2zM2 1h4v1h-4zM1 2h6v1h-6zM0 3h8v1h-8zM3 4h2v1h-2zM3 5h2v1h-2zM3 6h2v1h-2zM3 7h2v1h-2z"/></svg></button>
+    <button data-k="d" class="r" aria-label="Step right"><svg viewBox="0 0 8 8" shape-rendering="crispEdges"><path d="M3 0h2v1h-2zM2 1h4v1h-4zM1 2h6v1h-6zM0 3h8v1h-8zM3 4h2v1h-2zM3 5h2v1h-2zM3 6h2v1h-2zM3 7h2v1h-2z"/></svg></button>
+    <button data-k="s" class="d" aria-label="Walk back"><svg viewBox="0 0 8 8" shape-rendering="crispEdges"><path d="M3 0h2v1h-2zM2 1h4v1h-4zM1 2h6v1h-6zM0 3h8v1h-8zM3 4h2v1h-2zM3 5h2v1h-2zM3 6h2v1h-2zM3 7h2v1h-2z"/></svg></button>
   </div>
   <div id="rpad">
-    <div id="stick"><div id="knob"></div></div>
+    <div id="stick"><svg viewBox="0 0 24 24" shape-rendering="crispEdges"><path fill="#6b5a42" d="M9 0h6v1h-6zM6 1h12v1h-12zM5 2h3v1h-3zM16 2h3v1h-3zM4 3h2v1h-2zM18 3h2v1h-2zM3 4h2v1h-2zM19 4h2v1h-2zM2 5h2v1h-2zM20 5h2v1h-2zM1 6h2v1h-2zM21 6h2v1h-2zM1 7h2v1h-2zM21 7h2v1h-2zM1 8h1v1h-1zM22 8h1v1h-1zM0 9h2v1h-2zM22 9h2v1h-2zM0 10h2v1h-2zM22 10h2v1h-2zM0 11h2v1h-2zM22 11h2v1h-2zM0 12h2v1h-2zM22 12h2v1h-2zM0 13h2v1h-2zM22 13h2v1h-2zM0 14h2v1h-2zM22 14h2v1h-2zM1 15h1v1h-1zM22 15h1v1h-1zM1 16h2v1h-2zM21 16h2v1h-2zM1 17h2v1h-2zM21 17h2v1h-2zM2 18h2v1h-2zM20 18h2v1h-2zM3 19h2v1h-2zM19 19h2v1h-2zM4 20h2v1h-2zM18 20h2v1h-2zM5 21h3v1h-3zM16 21h3v1h-3zM6 22h12v1h-12zM9 23h6v1h-6z"/><path fill="#000000" d="M8 2h3v1h-3zM13 2h3v1h-3zM6 3h2v1h-2zM16 3h2v1h-2zM5 4h2v1h-2zM17 4h2v1h-2zM4 5h1v1h-1zM19 5h1v1h-1zM3 6h2v1h-2zM19 6h2v1h-2zM3 7h1v1h-1zM20 7h1v1h-1zM2 8h1v1h-1zM21 8h1v1h-1zM2 9h1v1h-1zM21 9h1v1h-1zM2 10h1v1h-1zM21 10h1v1h-1zM2 13h1v1h-1zM21 13h1v1h-1zM2 14h1v1h-1zM21 14h1v1h-1zM2 15h1v1h-1zM21 15h1v1h-1zM3 16h1v1h-1zM20 16h1v1h-1zM3 17h2v1h-2zM19 17h2v1h-2zM4 18h1v1h-1zM19 18h1v1h-1zM5 19h2v1h-2zM17 19h2v1h-2zM6 20h2v1h-2zM16 20h2v1h-2zM8 21h3v1h-3zM13 21h3v1h-3z"/><path fill="#8a7656" d="M11 2h2v1h-2zM11 3h2v1h-2zM2 11h2v1h-2zM20 11h2v1h-2zM2 12h2v1h-2zM20 12h2v1h-2zM11 20h2v1h-2zM11 21h2v1h-2z"/><path fill="#14100c" d="M8 3h3v1h-3zM13 3h3v1h-3zM7 4h10v1h-10zM5 5h14v1h-14zM5 6h14v1h-14zM4 7h16v1h-16zM3 8h18v1h-18zM3 9h18v1h-18zM3 10h18v1h-18zM4 11h16v1h-16zM4 12h16v1h-16zM3 13h18v1h-18zM3 14h18v1h-18zM3 15h18v1h-18zM4 16h16v1h-16zM5 17h14v1h-14zM5 18h14v1h-14zM7 19h10v1h-10zM8 20h3v1h-3zM13 20h3v1h-3z"/></svg><div id="knob"><svg viewBox="0 0 10 10" shape-rendering="crispEdges"><path fill="#1a1210" d="M3 0h4v1h-4zM1 1h2v1h-2zM7 1h2v1h-2zM1 2h1v1h-1zM8 2h1v1h-1zM0 3h1v1h-1zM9 3h1v1h-1zM0 4h1v1h-1zM9 4h1v1h-1zM0 5h1v1h-1zM9 5h1v1h-1zM0 6h1v1h-1zM9 6h1v1h-1zM1 7h1v1h-1zM8 7h1v1h-1zM1 8h2v1h-2zM7 8h2v1h-2zM3 9h4v1h-4z"/><path fill="#8a7656" d="M3 1h1v1h-1zM6 1h1v1h-1zM6 2h2v1h-2zM1 3h1v1h-1zM5 3h3v1h-3zM4 4h3v1h-3zM3 5h3v1h-3zM1 6h4v1h-4zM2 7h2v1h-2z"/><path fill="#c9bd9f" d="M4 1h2v1h-2zM2 2h4v1h-4zM2 3h3v1h-3zM1 4h3v1h-3zM1 5h2v1h-2z"/><path fill="#6b5a42" d="M8 3h1v1h-1zM7 4h2v1h-2zM6 5h3v1h-3zM5 6h4v1h-4zM4 7h4v1h-4zM3 8h4v1h-4z"/></svg></div></div>
     <div class="acts">
-      <button data-k=" " aria-label="Strike (also continues the text)"><svg viewBox="0 0 24 24"><g transform="rotate(45 12 12)"><path fill-rule="evenodd" d="M12 1.2 L14.2 4.2 V15 H9.8 V4.2 Z M11.4 5 V13.5 H12.6 V5 Z"/><rect x="6" y="15" width="12" height="2.6" rx="1.1"/><rect x="10.8" y="17.6" width="2.4" height="3.6"/><circle cx="12" cy="22" r="1.6"/></g></svg></button>
-      <button data-k="f" aria-label="Parry"><svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2 L20 5 V12 C20 17 16.5 20.5 12 22 C7.5 20.5 4 17 4 12 V5 Z M11 6 h2 v4 h4 v2 h-4 v7 h-2 v-7 h-4 v-2 h4 z"/></svg></button>
+      <button data-k=" " aria-label="Strike (also continues the text)"><svg viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="#f0f4fa" d="M13 1h2v1h-2zM12 2h1v1h-1zM11 3h1v1h-1zM10 4h1v1h-1zM9 5h1v1h-1zM8 6h1v1h-1zM7 7h1v1h-1zM6 8h1v1h-1z"/><path fill="#b8c2d0" d="M13 2h1v1h-1zM12 3h1v1h-1zM11 4h1v1h-1zM10 5h1v1h-1zM9 6h1v1h-1zM8 7h1v1h-1zM7 8h1v1h-1zM6 9h1v1h-1z"/><path fill="#7d8794" d="M14 2h1v1h-1zM13 3h1v1h-1zM12 4h1v1h-1zM11 5h1v1h-1zM10 6h1v1h-1zM9 7h1v1h-1zM8 8h1v1h-1zM7 9h1v1h-1z"/><path fill="#d6a93a" d="M2 7h2v1h-2zM3 8h2v1h-2zM4 9h2v1h-2zM5 10h2v1h-2zM6 11h2v1h-2zM7 12h2v1h-2zM1 13h1v1h-1zM8 13h2v1h-2zM0 14h3v1h-3zM0 15h2v1h-2z"/><path fill="#8a7656" d="M4 11h2v1h-2zM3 12h2v1h-2zM2 13h2v1h-2z"/></svg></button>
+      <button data-k="f" aria-label="Parry"><svg viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="#8e1b16" d="M10 1h4v1h-4zM10 2h4v1h-4zM10 3h4v1h-4zM10 4h4v1h-4zM12 5h2v1h-2zM12 6h2v1h-2zM10 7h4v1h-4zM10 8h4v1h-4zM10 9h3v1h-3zM10 10h2v1h-2zM10 11h1v1h-1z"/><path fill="#d6a93a" d="M2 0h12v1h-12zM1 1h1v1h-1zM14 1h1v1h-1zM1 2h1v1h-1zM14 2h1v1h-1zM1 3h1v1h-1zM14 3h1v1h-1zM1 4h1v1h-1zM14 4h1v1h-1zM1 5h1v1h-1zM14 5h1v1h-1zM1 6h1v1h-1zM14 6h1v1h-1zM1 7h1v1h-1zM14 7h1v1h-1zM1 8h1v1h-1zM14 8h1v1h-1zM2 9h1v1h-1zM13 9h1v1h-1zM3 10h1v1h-1zM12 10h1v1h-1zM4 11h1v1h-1zM11 11h1v1h-1zM5 12h1v1h-1zM10 12h1v1h-1zM6 13h1v1h-1zM9 13h1v1h-1zM7 14h2v1h-2z"/><path fill="#c0392b" d="M2 1h8v1h-8zM2 2h8v1h-8zM2 3h5v1h-5zM9 3h1v1h-1zM2 4h5v1h-5zM9 4h1v1h-1zM2 5h2v1h-2zM2 6h2v1h-2zM2 7h5v1h-5zM9 7h1v1h-1zM2 8h5v1h-5zM9 8h1v1h-1zM3 9h4v1h-4zM9 9h1v1h-1zM4 10h3v1h-3zM9 10h1v1h-1zM5 11h2v1h-2zM9 11h1v1h-1zM6 12h4v1h-4zM7 13h2v1h-2z"/><path fill="#f6edd6" d="M7 3h2v1h-2zM7 4h2v1h-2zM4 5h8v1h-8zM4 6h8v1h-8zM7 7h2v1h-2zM7 8h2v1h-2zM7 9h2v1h-2zM7 10h2v1h-2zM7 11h2v1h-2z"/></svg></button>
     </div>
   </div>
 </div>
@@ -318,7 +326,8 @@ function stickSet(ev) {
   let dx = ev.clientX - (r.left + r.width / 2), dy = ev.clientY - (r.top + r.height / 2);
   const d = Math.hypot(dx, dy); if (d > T) { dx *= T / d; dy *= T / d; }
   joyX = dx / T; joyY = dy / T;
-  knob.style.transform = "translate(calc(-50% + " + dx + "px), calc(-50% + " + dy + "px))";
+  const u = r.width / 24;   /* snap the knob to the sprite's pixel grid */
+  knob.style.transform = "translate(calc(-50% + " + Math.round(dx / u) * u + "px), calc(-50% + " + Math.round(dy / u) * u + "px))";
 }
 function stickReset() { joyX = joyY = 0; joyId = null; knob.style.transform = "translate(-50%, -50%)"; }
 stick.addEventListener("pointerdown", ev => {
@@ -1255,7 +1264,7 @@ function loop(now){
  if(walk>0&&walk<1){cam.position.y+=Math.sin(now*.011)*.014;cam.position.x+=Math.cos(now*.0055)*.007}
   // breathing: ~4.5s cycle, uses the loop's own frame cap so low power mode is untouched; fades out while zoomed on the screen
   const bk=1-.85*ez,br=(Math.sin(now*.0014)+.2*Math.sin(now*.0028+1))*bk;cam.position.y+=br*.012;
- if(open){yaw*=.9;pitch+=(-.13-pitch)*.1}
+ if(open){yaw*=.9;pitch+=(-.07-pitch)*.1}
  else{
   const E=.14;let dx=0,dy=0;
   if(inside){
