@@ -14,21 +14,39 @@ button:hover{background:#9fe8b8;color:#07100c}
 #hint{position:fixed;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom,0px));text-align:center;pointer-events:none;text-shadow:0 0 4px #000;color:#e8dcc4;transition:opacity 1s}
 #hint{font-family:'VT323',ui-monospace,Menlo,Consolas,monospace;font-size:19px;line-height:1.3;-webkit-font-smoothing:none;font-smooth:never}
 #hint{padding:0 12px;box-sizing:border-box}
-#pad{display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom,0px));width:min(560px,calc(100vw - 16px));gap:6px;box-sizing:border-box;z-index:5}
-#pad button{flex:1;height:58px;font:600 15px "Pixelify Sans",monospace;background:rgba(42,32,24,.85);color:#f1e6cc;border:3px solid #6b5636;border-radius:6px;padding:0;touch-action:none;-webkit-user-select:none;user-select:none}
-#pad button.big{flex:1.5}
+#pad{display:none;position:fixed;left:0;right:0;bottom:0;height:0;pointer-events:none;z-index:5}
+#dpad,#rpad{position:absolute;bottom:calc(10px + env(safe-area-inset-bottom,0px));pointer-events:none}
+#dpad{left:calc(12px + env(safe-area-inset-left,0px));display:grid;grid-template-columns:repeat(3,var(--s));grid-template-rows:repeat(3,var(--s));gap:4px}
+#dpad .u{grid-column:2;grid-row:1}#dpad .l{grid-column:1;grid-row:2}#dpad .r{grid-column:3;grid-row:2}#dpad .d{grid-column:2;grid-row:3}
+#rpad{right:calc(12px + env(safe-area-inset-right,0px));display:flex;flex-direction:column;align-items:center;gap:8px;width:var(--d)}
+#stick{position:relative;width:var(--d);height:var(--d);border-radius:50%;box-sizing:border-box;background:rgba(42,32,24,.6);border:3px solid #6b5636;touch-action:none;pointer-events:auto;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#knob{position:absolute;left:50%;top:50%;width:46%;height:46%;border-radius:50%;box-sizing:border-box;background:rgba(107,86,54,.95);border:3px solid rgba(241,230,204,.65);transform:translate(-50%,-50%);pointer-events:none}
+.acts{display:flex;gap:8px;width:var(--d)}
+#pad button{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font:600 15px "Pixelify Sans",monospace;background:rgba(42,32,24,.85);color:#f1e6cc;border:3px solid #6b5636;border-radius:6px;padding:0;box-sizing:border-box;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#pad .acts button{flex:1;width:auto;height:calc(var(--s)*1.15)}
 #pad button:active{background:#6b5636;color:#f1e6cc}
-@media (hover:none){body.pc #pad{display:flex}body.pc #hint{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
+#pad svg{width:62%;height:62%;fill:currentColor;display:block;pointer-events:none}
+#dpad .r svg{transform:rotate(90deg)}#dpad .d svg{transform:rotate(180deg)}#dpad .l svg{transform:rotate(-90deg)}
+:root{--s:clamp(42px,min(14vh,15vw),58px);--d:calc(var(--s)*2.4)}
+@media (hover:none){body.pc #pad{display:block}body.pc #hint{bottom:calc(14px + env(safe-area-inset-bottom,0px));padding:0 calc(var(--s)*3 + 28px)}}
+@media (hover:none) and (orientation:portrait){body.pc #hint{bottom:calc(var(--s)*3.6 + 26px + env(safe-area-inset-bottom,0px));padding:0 12px}}
 </style></head><body>
 <canvas id="c"></canvas><div id="fx"></div>
 <div id="hint"></div>
 <div id="pad">
-  <button data-k="arrowleft">&#9664;</button>
-  <button data-k="arrowright">&#9654;</button>
-  <button data-k="w">WALK</button>
-  <button data-k="s">BACK</button>
-  <button data-k=" " class="big">STRIKE</button>
-  <button data-k="f" class="big">PARRY</button>
+  <div id="dpad">
+    <button data-k="w" class="u" aria-label="Walk forward"><svg viewBox="0 0 24 24"><path d="M12 5 L20 18 H4 Z"/></svg></button>
+    <button data-k="a" class="l" aria-label="Step left"><svg viewBox="0 0 24 24"><path d="M12 5 L20 18 H4 Z"/></svg></button>
+    <button data-k="d" class="r" aria-label="Step right"><svg viewBox="0 0 24 24"><path d="M12 5 L20 18 H4 Z"/></svg></button>
+    <button data-k="s" class="d" aria-label="Walk back"><svg viewBox="0 0 24 24"><path d="M12 5 L20 18 H4 Z"/></svg></button>
+  </div>
+  <div id="rpad">
+    <div id="stick"><div id="knob"></div></div>
+    <div class="acts">
+      <button data-k=" " aria-label="Strike (also continues the text)"><svg viewBox="0 0 24 24"><g transform="rotate(45 12 12)"><path fill-rule="evenodd" d="M12 1.2 L14.2 4.2 V15 H9.8 V4.2 Z M11.4 5 V13.5 H12.6 V5 Z"/><rect x="6" y="15" width="12" height="2.6" rx="1.1"/><rect x="10.8" y="17.6" width="2.4" height="3.6"/><circle cx="12" cy="22" r="1.6"/></g></svg></button>
+      <button data-k="f" aria-label="Parry"><svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2 L20 5 V12 C20 17 16.5 20.5 12 22 C7.5 20.5 4 17 4 12 V5 Z M11 6 h2 v4 h4 v2 h-4 v7 h-2 v-7 h-4 v-2 h4 z"/></svg></button>
+    </div>
+  </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -254,6 +272,7 @@ addEventListener("keydown", ev => {
 });
 addEventListener("keyup", ev => { keys[ev.key.toLowerCase()] = false; });
 let lookX = 0, lookY = 0, mouseIn = false, tp = null, hu = -1, hv = -1;
+let joyX = 0, joyY = 0, joyId = null;   /* on-screen look joystick, -1..1 each way */
 const locked = () => !!API.lockEl && document.pointerLockElement === API.lockEl;
 function look(dx, dy) { p.a += dx; pitch = Math.max(-80, Math.min(80, pitch - dy)); }
 function pDown(type, button, id) {
@@ -292,6 +311,25 @@ document.querySelectorAll("#pad button").forEach(b => {
   b.addEventListener("pointerdown", ev => { ev.preventDefault(); keys[k] = true; if (k === " ") act(); });
   ["pointerup", "pointerleave", "pointercancel"].forEach(n => b.addEventListener(n, () => { keys[k] = false; }));
 });
+/* look joystick (mobile): left/right turns, up/down tilts the view, same speed feel as edge-look */
+const stick = document.getElementById("stick"), knob = document.getElementById("knob");
+function stickSet(ev) {
+  const r = stick.getBoundingClientRect(), T = r.width / 2 - knob.offsetWidth / 2;
+  let dx = ev.clientX - (r.left + r.width / 2), dy = ev.clientY - (r.top + r.height / 2);
+  const d = Math.hypot(dx, dy); if (d > T) { dx *= T / d; dy *= T / d; }
+  joyX = dx / T; joyY = dy / T;
+  knob.style.transform = "translate(calc(-50% + " + dx + "px), calc(-50% + " + dy + "px))";
+}
+function stickReset() { joyX = joyY = 0; joyId = null; knob.style.transform = "translate(-50%, -50%)"; }
+stick.addEventListener("pointerdown", ev => {
+  if (joyId !== null) return;
+  ev.preventDefault(); joyId = ev.pointerId;
+  try { stick.setPointerCapture(ev.pointerId); } catch (x) {}
+  stickSet(ev);
+});
+stick.addEventListener("pointermove", ev => { if (ev.pointerId === joyId) stickSet(ev); });
+["pointerup", "pointercancel", "lostpointercapture"].forEach(n => stick.addEventListener(n, ev => { if (ev.pointerId === joyId) stickReset(); }));
+document.getElementById("pad").addEventListener("contextmenu", ev => ev.preventDefault());
 /* what the room page talks to */
 const API = { cv, uc, lockEl: null, setActive, frame, down: pDown, move: pMove, up: pUp, hover };
 
@@ -593,6 +631,10 @@ function updatePlayer() {
   if (mouseIn && !locked()) {
     const dz = .16, sx = Math.abs(lookX) > dz ? (lookX - Math.sign(lookX) * dz) / (1 - dz) : 0;
     p.a += sx * .05; pitch += ((Math.abs(lookY) > .12 ? -lookY * 70 : 0) - pitch) * .12;
+  }
+  if (joyX || joyY) {
+    const dz = v => Math.abs(v) > .16 ? (v - Math.sign(v) * .16) / (1 - .16) : 0;
+    p.a += dz(joyX) * .05; pitch = Math.max(-80, Math.min(80, pitch - dz(joyY) * 1.3));
   }
   let f = 0, st = 0;
   if (keys.w || keys.arrowup) f++; if (keys.s || keys.arrowdown) f--; if (keys.d) st++; if (keys.a) st--;
@@ -930,7 +972,7 @@ function setActive(on) {
   if (on === IN.on) return;
   IN.on = on;
   if (on) wake();
-  else { for (const k in keys) keys[k] = false; tp = null; mouseIn = false; lookX = lookY = 0; pauseAudio(); }
+  else { for (const k in keys) keys[k] = false; tp = null; mouseIn = false; lookX = lookY = 0; stickReset(); pauseAudio(); }
 }
 return API;
 })();
